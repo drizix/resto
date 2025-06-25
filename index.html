@@ -4,6 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sondage StrawPoll</title>
+   <script type="module">
+    // Firebase v9+ Importation
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    // 🔁 REMPLACE ICI avec tes infos Firebase :
+    const firebaseConfig = {
+      piKey: "AIzaSyApbkZQRWSogiBwq_-6BZNtJ9PD_Lq2PXU",
+  authDomain: "table-24032.firebaseapp.com",
+  projectId: "table-24032",
+  storageBucket: "table-24032.firebasestorage.app",
+  messagingSenderId: "581843245917",
+  appId: "1:581843245917:web:bdbad4fbd7fa319347a6b4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const totalSeats = 18;
+
+    // Charger données existantes
+    for (let i = 1; i <= totalSeats; i++) {
+      const input = document.getElementById("seat" + i);
+      const seatDoc = doc(db, "seats", "seat" + i);
+
+      // Écoute en temps réel
+      onSnapshot(seatDoc, (docSnap) => {
+        if (docSnap.exists()) {
+          input.value = docSnap.data().name || "";
+        }
+      });
+
+      input.addEventListener("change", async () => {
+        await setDoc(seatDoc, { name: input.value });
+      });
+    }
+  </script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,11 +62,74 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+     .table-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .side {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .seat input {
+      width: 80px;
+      padding: 5px;
+      margin: 3px;
+      text-align: center;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      font-size: 14px;
+    }
+    .table {
+      width: 740px;
+      height: 80px;
+      background-color: #d1c4e9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      border-radius: 10px;
+      margin: 10px 0;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Choix du plat resto de jeudi (12h30)</h1>
+    
+    <h2>Plan de table </h2>
+    <div class="table-container">
+    <div class="side">
+      <!-- Sièges 1 à 9 -->
+      <div class="seat"><input id="seat1" placeholder="1"></div>
+      <div class="seat"><input id="seat2" placeholder="2"></div>
+      <div class="seat"><input id="seat3" placeholder="3"></div>
+      <div class="seat"><input id="seat4" placeholder="4"></div>
+      <div class="seat"><input id="seat5" placeholder="5"></div>
+      <div class="seat"><input id="seat6" placeholder="6"></div>
+      <div class="seat"><input id="seat7" placeholder="7"></div>
+      <div class="seat"><input id="seat8" placeholder="8"></div>
+      <div class="seat"><input id="seat9" placeholder="9"></div>
+    </div>
+
+    <div class="table">TABLE</div>
+
+    <div class="side">
+      <!-- Sièges 10 à 18 -->
+      <div class="seat"><input id="seat10" placeholder="10"></div>
+      <div class="seat"><input id="seat11" placeholder="11"></div>
+      <div class="seat"><input id="seat12" placeholder="12"></div>
+      <div class="seat"><input id="seat13" placeholder="13"></div>
+      <div class="seat"><input id="seat14" placeholder="14"></div>
+      <div class="seat"><input id="seat15" placeholder="15"></div>
+      <div class="seat"><input id="seat16" placeholder="16"></div>
+      <div class="seat"><input id="seat17" placeholder="17"></div>
+      <div class="seat"><input id="seat18" placeholder="18"></div>
+    </div>
+  </div>
     <div class="strawpoll-embed" id="strawpoll_PbZqbLR6ByN" style="height: 3296px; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column;">
       <iframe title="StrawPoll Embed" id="strawpoll_iframe_PbZqbLR6ByN" src="https://strawpoll.com/embed/PbZqbLR6ByN" style="position: static; visibility: visible; display: block; width: 100%; flex-grow: 1;" frameborder="0" allowfullscreen allowtransparency>Loading...</iframe>
       <script async src="https://cdn.strawpoll.com/dist/widgets.js" charset="utf-8"></script>
