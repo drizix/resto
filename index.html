@@ -2,67 +2,110 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sondage StrawPoll</title>
-   <script type="module">
-    // Firebase v9+ Importation
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+  <title>Plan de Table Drag & Drop</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // 🔁 REMPLACE ICI avec tes infos Firebase :
-    const firebaseConfig = {
-      piKey: "AIzaSyApbkZQRWSogiBwq_-6BZNtJ9PD_Lq2PXU",
+const firebaseConfig = {
+  apiKey: "AIzaSyApbkZQRWSogiBwq_-6BZNtJ9PD_Lq2PXU",
   authDomain: "table-24032.firebaseapp.com",
   projectId: "table-24032",
   storageBucket: "table-24032.firebasestorage.app",
   messagingSenderId: "581843245917",
   appId: "1:581843245917:web:bdbad4fbd7fa319347a6b4"
-    };
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const totalSeats = 18;
+    const nameList = document.getElementById("nameList");
+    let draggedItem = null;
 
-    // Charger données existantes
-    for (let i = 1; i <= totalSeats; i++) {
-      const input = document.getElementById("seat" + i);
-      const seatDoc = doc(db, "seats", "seat" + i);
+    document.querySelectorAll(".name").forEach(name => {
+      name.addEventListener("dragstart", (e) => {
+        draggedItem = name;
+        setTimeout(() => name.style.display = "none", 0);
+      });
 
-      // Écoute en temps réel
-      onSnapshot(seatDoc, (docSnap) => {
-        if (docSnap.exists()) {
-          input.value = docSnap.data().name || "";
+      name.addEventListener("dragend", () => {
+        draggedItem.style.display = "inline-block";
+        draggedItem = null;
+      });
+    });
+
+    document.querySelectorAll(".seat").forEach(seat => {
+      const seatId = seat.getAttribute("data-seat");
+      const seatDocRef = doc(db, "seats", seatId);
+
+      seat.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        seat.classList.add("dragover");
+      });
+
+      seat.addEventListener("dragleave", () => {
+        seat.classList.remove("dragover");
+      });
+
+      seat.addEventListener("drop", async () => {
+        seat.classList.remove("dragover");
+        if (draggedItem && seat.children.length === 0) {
+          seat.appendChild(draggedItem);
+          await setDoc(seatDocRef, { name: draggedItem.textContent });
         }
       });
 
-      input.addEventListener("change", async () => {
-        await setDoc(seatDoc, { name: input.value });
+      onSnapshot(seatDocRef, (docSnap) => {
+        const current = seat.querySelector(".name");
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.name && (!current || current.textContent !== data.name)) {
+            const nameEl = Array.from(nameList.children).find(el => el.textContent === data.name);
+            if (nameEl) seat.appendChild(nameEl);
+          } else if (!data.name && current) {
+            nameList.appendChild(current);
+          }
+        }
       });
-    }
+    });
+
+    nameList.addEventListener("dragover", e => e.preventDefault());
+    nameList.addEventListener("drop", async e => {
+      if (draggedItem) {
+        const parentSeat = draggedItem.closest(".seat");
+        if (parentSeat) {
+          const seatId = parentSeat.getAttribute("data-seat");
+          await setDoc(doc(db, "seats", seatId), { name: "" });
+        }
+        nameList.appendChild(draggedItem);
+      }
+    });
   </script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
+      font-family: sans-serif;
       text-align: center;
-      color: #333;
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      background: #fff;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      background-color: #f9f9f9;
     }
-     .table-container {
+    h1 {
+      margin-bottom: 10px;
+    }
+    .names-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .name {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: grab;
+      font-weight: bold;
+      color: white;
+    }
+    .table-container {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -70,69 +113,86 @@
     .side {
       display: flex;
       justify-content: center;
+      gap: 10px;
       margin: 10px 0;
-      flex-wrap: wrap;
     }
-    .seat input {
+    .seat {
       width: 80px;
-      padding: 5px;
-      margin: 3px;
-      text-align: center;
-      border-radius: 6px;
-      border: 1px solid #bbb;
-      font-size: 14px;
+      height: 40px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      line-height: 40px;
+      background-color: #fff;
+      font-weight: bold;
+      color: #333;
+    }
+    .seat.dragover {
+      border-color: #673ab7;
+      background-color: #ede7f6;
     }
     .table {
       width: 740px;
       height: 80px;
       background-color: #d1c4e9;
+      border-radius: 10px;
       display: flex;
       justify-content: center;
       align-items: center;
       font-weight: bold;
-      border-radius: 10px;
       margin: 10px 0;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Choix du plat resto de jeudi (12h30)</h1>
-    
-    <h2>Plan de table </h2>
-    <div class="table-container">
-    <div class="side">
-      <!-- Sièges 1 à 9 -->
-      <div class="seat"><input id="seat1" placeholder="1"></div>
-      <div class="seat"><input id="seat2" placeholder="2"></div>
-      <div class="seat"><input id="seat3" placeholder="3"></div>
-      <div class="seat"><input id="seat4" placeholder="4"></div>
-      <div class="seat"><input id="seat5" placeholder="5"></div>
-      <div class="seat"><input id="seat6" placeholder="6"></div>
-      <div class="seat"><input id="seat7" placeholder="7"></div>
-      <div class="seat"><input id="seat8" placeholder="8"></div>
-      <div class="seat"><input id="seat9" placeholder="9"></div>
+  <h1>Plan de Table</h1>
+  <p>Faites glisser votre prénom vers une place libre</p>
+
+  <div class="names-list" id="nameList">
+    <div class="name" draggable="true" style="background-color:#e57373;">Magali</div>
+    <div class="name" draggable="true" style="background-color:#f06292;">Jérémy</div>
+    <div class="name" draggable="true" style="background-color:#ba68c8;">Eloise</div>
+    <div class="name" draggable="true" style="background-color:#9575cd;">César</div>
+    <div class="name" draggable="true" style="background-color:#7986cb;">Robin</div>
+    <div class="name" draggable="true" style="background-color:#64b5f6;">Virginie</div>
+    <div class="name" draggable="true" style="background-color:#4db6ac;">Brice</div>
+    <div class="name" draggable="true" style="background-color:#81c784;">Maxime</div>
+    <div class="name" draggable="true" style="background-color:#aed581;">Yanis</div>
+    <div class="name" draggable="true" style="background-color:#dce775;">Alexandra</div>
+    <div class="name" draggable="true" style="background-color:#fff176;">Christelle</div>
+    <div class="name" draggable="true" style="background-color:#ffd54f;">Manon</div>
+    <div class="name" draggable="true" style="background-color:#ffb74d;">Camille</div>
+    <div class="name" draggable="true" style="background-color:#ff8a65;">Christine</div>
+    <div class="name" draggable="true" style="background-color:#a1887f;">Guillaume</div>
+    <div class="name" draggable="true" style="background-color:#90a4ae;">Nicolas</div>
+    <div class="name" draggable="true" style="background-color:#f48fb1;">Soizic</div>
+    <div class="name" draggable="true" style="background-color:#ce93d8;">Julien</div>
+  </div>
+
+  <div class="table-container">
+    <div class="side" id="topRow">
+      <div class="seat" data-seat="1"></div>
+      <div class="seat" data-seat="2"></div>
+      <div class="seat" data-seat="3"></div>
+      <div class="seat" data-seat="4"></div>
+      <div class="seat" data-seat="5"></div>
+      <div class="seat" data-seat="6"></div>
+      <div class="seat" data-seat="7"></div>
+      <div class="seat" data-seat="8"></div>
+      <div class="seat" data-seat="9"></div>
     </div>
 
     <div class="table">TABLE</div>
 
-    <div class="side">
-      <!-- Sièges 10 à 18 -->
-      <div class="seat"><input id="seat10" placeholder="10"></div>
-      <div class="seat"><input id="seat11" placeholder="11"></div>
-      <div class="seat"><input id="seat12" placeholder="12"></div>
-      <div class="seat"><input id="seat13" placeholder="13"></div>
-      <div class="seat"><input id="seat14" placeholder="14"></div>
-      <div class="seat"><input id="seat15" placeholder="15"></div>
-      <div class="seat"><input id="seat16" placeholder="16"></div>
-      <div class="seat"><input id="seat17" placeholder="17"></div>
-      <div class="seat"><input id="seat18" placeholder="18"></div>
-    </div>
-  </div>
-    <div class="strawpoll-embed" id="strawpoll_PbZqbLR6ByN" style="height: 3296px; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column;">
-      <iframe title="StrawPoll Embed" id="strawpoll_iframe_PbZqbLR6ByN" src="https://strawpoll.com/embed/PbZqbLR6ByN" style="position: static; visibility: visible; display: block; width: 100%; flex-grow: 1;" frameborder="0" allowfullscreen allowtransparency>Loading...</iframe>
-      <script async src="https://cdn.strawpoll.com/dist/widgets.js" charset="utf-8"></script>
+    <div class="side" id="bottomRow">
+      <div class="seat" data-seat="10"></div>
+      <div class="seat" data-seat="11"></div>
+      <div class="seat" data-seat="12"></div>
+      <div class="seat" data-seat="13"></div>
+      <div class="seat" data-seat="14"></div>
+      <div class="seat" data-seat="15"></div>
+      <div class="seat" data-seat="16"></div>
+      <div class="seat" data-seat="17"></div>
+      <div class="seat" data-seat="18"></div>
     </div>
   </div>
 </body>
